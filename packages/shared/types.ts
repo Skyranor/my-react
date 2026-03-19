@@ -12,3 +12,14 @@ export interface ReactElement {
 		children: ReactElement[]
 	}
 }
+
+export interface Fiber {
+	type: ElementType
+	props: Record<string, any>
+	dom: HTMLElement | Text | null
+
+	// Связи для обхода дерева
+	parent: Fiber | null
+	child: Fiber | null
+	sibling: Fiber | null
+}

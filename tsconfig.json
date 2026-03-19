@@ -15,9 +15,9 @@
 		// --- ВОТ ТУТ НАЧИНАЕТСЯ МАГИЯ ДЛЯ НАШЕГО REACT ---
 		"jsx": "react",
 		// Говорим компилятору: "Вместо React.createElement используй нашу функцию createElement!"
-		"jsxFactory": "createElement",
+		"jsxFactory": "React.createElement",
 		// А фрагменты (<>...</>) превращай в это:
-		"jsxFragmentFactory": "createFragment"
+		"jsxFragmentFactory": "React.createFragment"
 	},
 	"include": ["packages/**/*", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
 	"exclude": ["node_modules", "dist", "build"]
