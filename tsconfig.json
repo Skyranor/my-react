@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"lib": ["DOM", "ESNext"],
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"moduleResolution": "node",
+		"allowJs": true,
+		"checkJs": false,
+		"noEmit": true,
+		"noEmitOnError": false,
+		// --- ВОТ ТУТ НАЧИНАЕТСЯ МАГИЯ ДЛЯ НАШЕГО REACT ---
+		"jsx": "react",
+		// Говорим компилятору: "Вместо React.createElement используй нашу функцию createElement!"
+		"jsxFactory": "createElement",
+		// А фрагменты (<>...</>) превращай в это:
+		"jsxFragmentFactory": "createFragment"
+	},
+	"include": ["packages/**/*", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
+	"exclude": ["node_modules", "dist", "build"]
+}
