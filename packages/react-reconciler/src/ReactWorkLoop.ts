@@ -51,40 +51,16 @@ requestIdleCallback(workLoop)
 
 // Функция, которая выполняет 1 шаг работы и возвращает следующий узел
 function performUnitOfWork(fiber: Fiber): Fiber | null {
-	// 1. Создаем DOM-узел, если его еще нет
-	if (!fiber.dom && fiber.type !== 'ROOT') {
-		fiber.dom =
-			fiber.type === 'TEXT_ELEMENT'
-				? document.createTextNode('')
-				: document.createElement(fiber.type as string)
+	// 1. Проверяем тип компонента
+	const isFunctionComponent = fiber.type instanceof Function
+
+	if (isFunctionComponent) {
+		updateFunctionComponent(fiber)
+	} else {
+		updateHostComponent(fiber)
 	}
 
-	// 2. Создаем новые Fiber-узлы для детей текущего элемента
-	const elements = fiber.props.children || []
-	let prevSibling: Fiber | null = null
-
-	for (let i = 0; i < elements.length; i++) {
-		const element = elements[i]
-		const newFiber: Fiber = {
-			type: element.type,
-			props: element.props,
-			parent: fiber,
-			dom: null,
-			child: null,
-			sibling: null,
-		}
-
-		// Если это первый ребенок, привязываем его к родителю
-		if (i === 0) {
-			fiber.child = newFiber
-		} else if (prevSibling) {
-			// Иначе привязываем его как брата к предыдущему ребенку
-			prevSibling.sibling = newFiber
-		}
-		prevSibling = newFiber
-	}
-
-	// 3. Возвращаем следующий узел для работы (приоритет: ребенок -> брат -> дядя)
+	// 2. Возвращаем следующий узел для работы (приоритет: ребенок -> брат -> дядя)
 	if (fiber.child) {
 		return fiber.child
 	}
@@ -97,4 +73,55 @@ function performUnitOfWork(fiber: Fiber): Fiber | null {
 	}
 
 	return null
+}
+
+// Обработка функциональных компонентов (<App />)
+function updateFunctionComponent(fiber: Fiber) {
+	// ВНИМАНИЕ: Здесь мы вызываем функцию! fiber.type — это функция компонента.
+	// Мы передаем ей пропсы и получаем то, что она возвращает (JSX).
+	const children = [(fiber.type as Function)(fiber.props)]
+
+	// Передаем полученных детей на согласование (Reconciliation)
+	reconcileChildren(fiber, children)
+}
+
+// Обработка обычных тегов (div, h1, text)
+function updateHostComponent(fiber: Fiber) {
+	if (!fiber.dom && fiber.type !== 'ROOT') {
+		fiber.dom =
+			fiber.type === 'TEXT_ELEMENT'
+				? document.createTextNode('')
+				: document.createElement(fiber.type as string)
+	}
+
+	const children = fiber.props.children || []
+	reconcileChildren(fiber, children)
+}
+
+// Логика связывания Fiber-узлов (мы просто вынесли её из старого performUnitOfWork)
+function reconcileChildren(wipFiber: Fiber, elements: any[]) {
+	let prevSibling: Fiber | null = null
+
+	for (let i = 0; i < elements.length; i++) {
+		const element = elements[i]
+
+		// Если функция вернула null или undefined, игнорируем
+		if (!element) continue
+
+		const newFiber: Fiber = {
+			type: element.type,
+			props: element.props,
+			parent: wipFiber,
+			dom: null, // Изначально DOM пуст
+			child: null,
+			sibling: null,
+		}
+
+		if (i === 0) {
+			wipFiber.child = newFiber
+		} else if (prevSibling) {
+			prevSibling.sibling = newFiber
+		}
+		prevSibling = newFiber
+	}
 }
