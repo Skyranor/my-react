@@ -94,9 +94,21 @@ function App() {
 
 			<CounterSection />
 
-			<div style='margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);'>
-				<p style='color: rgba(255,255,255,0.3); font-size: 11px; margin: 0; text-align: center;'>
-					Построено на самописном React Engine с нуля 🔥
+			<div style='margin-top: 40px; padding: 20px 15px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;'>
+				<p style='color: rgba(255,255,255,0.5); font-size: 13px; margin: 0 0 12px;'>
+					Crafted with 🧠 by <strong style="color: #61dafb;">@Skyranor</strong>
+				</p>
+				<div style="display: flex; gap: 15px; justify-content: center; font-size: 12px;">
+					<a href="https://github.com/Skyranor" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none; display: flex; align-items: center; gap: 4px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+						GitHub
+					</a>
+					<span style="color: rgba(255,255,255,0.15);">|</span>
+					<a href="https://www.linkedin.com/in/dzmitrybaryshau/" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none;" onmouseover="this.style.color='#0077b5'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+						LinkedIn
+					</a>
+				</div>
+				<p style='color: rgba(255,255,255,0.2); font-size: 10px; margin-top: 15px;'>
+					Самописный React & Fiber Engine с нуля 🔥
 				</p>
 			</div>
 		</div>
