@@ -11,11 +11,15 @@ export function createElement(
 		children: [],
 	}
 
+	// Flatten nested arrays (важно для .map()) и отфильтровываем null/undefined/boolean
 	// Если дети есть, обрабатываем их
 	// Если ребенок - примитив (строка/число), превращаем его в объект TEXT_ELEMENT
-	props.children = children.map(child =>
-		typeof child === 'object' ? child : createTextElement(child),
-	)
+	props.children = children
+		.flat(Infinity)
+		.filter(child => child != null && child !== true && child !== false)
+		.map(child =>
+			typeof child === 'object' ? child : createTextElement(child),
+		)
 
 	return {
 		type,
