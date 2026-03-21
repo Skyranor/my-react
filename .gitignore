@@ -95,3 +95,4 @@ yarn-error.log*
 
 # Bundler cache
 .node_modules.bun
+.vercel

@@ -99,11 +99,11 @@ function App() {
 					Crafted with 🧠 by <strong style="color: #61dafb;">@Skyranor</strong>
 				</p>
 				<div style="display: flex; gap: 15px; justify-content: center; font-size: 12px;">
-					<a href="https://github.com/Skyranor" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none; display: flex; align-items: center; gap: 4px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+					<a href="https://github.com/Skyranor" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none; display: flex; align-items: center; gap: 4px;">
 						GitHub
 					</a>
 					<span style="color: rgba(255,255,255,0.15);">|</span>
-					<a href="https://www.linkedin.com/in/dzmitrybaryshau/" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none;" onmouseover="this.style.color='#0077b5'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+					<a href="https://www.linkedin.com/in/dzmitrybaryshau/" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none;">
 						LinkedIn
 					</a>
 				</div>
