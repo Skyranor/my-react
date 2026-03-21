@@ -203,7 +203,10 @@ function cloneChildFibers(wipFiber: Fiber) {
 			alternate: oldChild,
 			child: null,
 			sibling: null,
-			hooks: oldChild.hooks ? oldChild.hooks.map((h: any) => h.tag === 'effect' ? { ...h, effect: null } : h) : []
+			hooks: oldChild.hooks ? oldChild.hooks.map((h: any) => h.tag === 'effect' ? { ...h, effect: null } : h) : [],
+			renderCount: oldChild.renderCount,
+			skippedCount: oldChild.skippedCount,
+			wasSkipped: oldChild.wasSkipped,
 		}
 		
 		if (!prevChild) {
@@ -261,63 +264,73 @@ function updateHostComponent(fiber: Fiber) {
 }
 
 function reconcileChildren(wipFiber: Fiber, elements: any[]) {
-	let index = 0
+	// 1. Собираем старые фиберы в Map по ключу (или индексу как fallback)
+	const oldFibers = new Map<string | number, Fiber>()
 	let oldFiber = wipFiber.alternate?.child || null
-	let prevSibling: Fiber | null = null
+	let oldIndex = 0
 
-	while (index < elements.length || oldFiber != null) {
+	while (oldFiber) {
+		const key = oldFiber.props?.key !== undefined ? oldFiber.props.key : oldIndex
+		oldFibers.set(key, oldFiber)
+		oldFiber = oldFiber.sibling
+		oldIndex++
+	}
+
+	let prevSibling: Fiber | null = null
+	let isFirstChild = true
+
+	// 2. Идем по новым элементам и сопоставляем их со старым деревом
+	for (let index = 0; index < elements.length; index++) {
 		const element = elements[index]
+		if (!element) continue // Пропускаем null, false (условный рендеринг)
+
+		const key = element.props?.key !== undefined ? element.props.key : index
+		const matchedFiber = oldFibers.get(key)
+		const sameType = matchedFiber && element.type === matchedFiber.type
+
 		let newFiber: Fiber | null = null
 
-		const sameType = oldFiber && element && element.type === oldFiber.type
-
 		if (sameType) {
-			// Логируем причину рендера (изменение пропсов)
-			// Логика Bailout теперь обрабатывается в updateFunctionComponent
-			const name = typeof element.type === 'function' ? (element.type as any).name : String(element.type)
-
-			// UPDATE: Сохраняем DOM-узел и State (через alternate)
+			// UPDATE: переиспользуем старый Fiber и его State (через alternate)
+			oldFibers.delete(key) // Убираем из словаря, т.к. найден
 			newFiber = {
-				type: oldFiber!.type,
+				type: matchedFiber!.type,
 				props: element.props,
-				dom: oldFiber!.dom,
+				dom: matchedFiber!.dom,
 				parent: wipFiber,
-				alternate: oldFiber,
+				alternate: matchedFiber,
 				child: null,
 				sibling: null,
 				effectTag: 'UPDATE',
 			}
 		} else {
-			if (element) {
-				// PLACEMENT: Создаем новый узел
-				newFiber = {
-					type: element.type,
-					props: element.props,
-					dom: null,
-					parent: wipFiber,
-					alternate: null,
-					child: null,
-					sibling: null,
-					effectTag: 'PLACEMENT',
-				}
-			}
-			if (oldFiber) {
-				// DELETION: Помечаем старый узел на удаление
-				oldFiber.effectTag = 'DELETION'
-				deletions.push(oldFiber)
+			// PLACEMENT: Создаем новый узел
+			newFiber = {
+				type: element.type,
+				props: element.props,
+				dom: null,
+				parent: wipFiber,
+				alternate: null,
+				child: null,
+				sibling: null,
+				effectTag: 'PLACEMENT',
 			}
 		}
 
-		if (oldFiber) oldFiber = oldFiber.sibling
-
 		// Выстраиваем связи parent -> child и sibling -> sibling
-		if (index === 0 && newFiber) {
+		if (isFirstChild) {
 			wipFiber.child = newFiber
-		} else if (element && prevSibling) {
+			isFirstChild = false
+		} else if (prevSibling) {
 			prevSibling.sibling = newFiber
 		}
 
-		if (newFiber) prevSibling = newFiber
-		index++
+		prevSibling = newFiber
+	}
+
+	// 3. Фиберы, которые остались в Map (нет совпадений) -> удаляем из DOM
+	for (const oldFiberToDelete of oldFibers.values()) {
+		oldFiberToDelete.effectTag = 'DELETION'
+		deletions.push(oldFiberToDelete)
 	}
 }

@@ -5,10 +5,10 @@ import { TodoItem } from './TodoItem'
 
 export function TodoDashboard() {
 	const [todos, setTodos] = useState([
-		'Изучить Fiber Architecture',
-		'Реализовать useState',
-		'Добавить useEffect',
-		'Написать Profiler',
+		{ id: 1, text: 'Изучить Fiber Architecture' },
+		{ id: 2, text: 'Реализовать useState' },
+		{ id: 3, text: 'Добавить useEffect' },
+		{ id: 4, text: 'Написать Profiler' },
 	])
 
 	const addTodo = () => {
@@ -21,11 +21,11 @@ export function TodoDashboard() {
 			'Добавить Error Boundaries',
 		]
 		const text = ideas[Math.floor(Math.random() * ideas.length)]
-		setTodos([...todos, text])
+		setTodos([...todos, { id: Date.now() + Math.random(), text }])
 	}
 
-	const deleteTodo = (index: number) => {
-		setTodos(todos.filter((_: any, i: number) => i !== index))
+	const deleteTodo = (id: number) => {
+		setTodos(todos.filter((todo: any) => todo.id !== id))
 	}
 
 	return (
@@ -47,8 +47,8 @@ export function TodoDashboard() {
 			</div>
 
 			<div>
-				{todos.map((text: string, i: number) => (
-					<TodoItem key={i} text={text} onDelete={() => deleteTodo(i)} />
+				{todos.map((todo: any) => (
+					<TodoItem key={todo.id} text={todo.text} onDelete={() => deleteTodo(todo.id)} />
 				))}
 			</div>
 		</React.Fragment>

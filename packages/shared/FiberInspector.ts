@@ -15,11 +15,10 @@ class InspectorUI {
 	private activeTab: 'trees' | 'profiler' | 'logs' | 'docs' = 'trees'
 	private searchQuery: string = ''
 	private collapsedNodes: Set<string> = new Set()
-	private renderCounts: Map<string, number> = new Map()
-	private skippedCounts: Map<string, number> = new Map()
+
 
 	// Маппинг для стабильных ID нод
-	private fiberIds: Map<Fiber, number> = new Map()
+	private fiberIds: WeakMap<Fiber, number> = new WeakMap()
 	private nextId: number = 1
 
 	private getFiberId(fiber: Fiber | null): string {
@@ -703,18 +702,7 @@ class InspectorUI {
 		return String(fiber.type)
 	}
 
-	private getFiberKey(fiber: Fiber, indent: number): string {
-		let key = `${indent}:${this.getFiberName(fiber)}`
-		let p = fiber.parent
-		let depth = 0
-		while (p && depth < 2) {
-			// Берем контекст предков для уникальности
-			key = this.getFiberName(p) + '/' + key
-			p = p.parent
-			depth++
-		}
-		return key
-	}
+
 
 	private renderTree(
 		root: Fiber | null,
@@ -730,28 +718,16 @@ class InspectorUI {
 
 		const list = document.createElement('ul')
 
-		const traverse = (fiber: Fiber | null, indent = 0) => {
+		const traverse = (fiber: Fiber | null, indent = 0, path = '0') => {
 			if (!fiber) return
 
 			const name = this.getFiberName(fiber)
 			const isMatch = this.searchQuery
 				? name.toLowerCase().includes(this.searchQuery)
 				: true
-			const fiberKey = this.getFiberKey(fiber, indent)
+			const fiberKey = path
 
-			// Логика счетчика рендеров (только на фазе коммита инкрементим)
-			const isSlowMode = activeFiber !== null
-			const shouldIncrement = isSlowMode ? (fiber === activeFiber) : true
-
-			if (phase.includes('COMMIT') && shouldIncrement) {
-				if (fiber.wasSkipped) {
-					this.skippedCounts.set(fiberKey, (this.skippedCounts.get(fiberKey) || 0) + 1)
-				} else if (fiber.effectTag === 'UPDATE' || fiber.effectTag === 'PLACEMENT') {
-					this.renderCounts.set(fiberKey, (this.renderCounts.get(fiberKey) || 0) + 1)
-				}
-			}
-
-			const count = this.renderCounts.get(fiberKey) || 0
+			const count = fiber.renderCount || 0
 			const isCollapsed = this.collapsedNodes.has(fiberKey)
 			const isActive = fiber === activeFiber
 
@@ -810,7 +786,7 @@ class InspectorUI {
 				if (fiber.effectTag === 'DELETION')
 					html += ` <span style="background: rgba(224, 108, 117, 0.2); color: var(--danger); padding: 0 4px; border-radius: 2px; font-size: 9px;">-</span>`
 
-				const skippedCount = this.skippedCounts.get(fiberKey) || 0
+				const skippedCount = fiber.skippedCount || 0
 				if (count > 1)
 					html += ` <span style="color: var(--warning); font-size: 9px;" title="Render count">x${count}</span>`
 				if (skippedCount > 0)
@@ -829,10 +805,12 @@ class InspectorUI {
 			}
 
 			// Рекурсия по детям, если узел не свернут
-			if (!isCollapsed) traverse(fiber.child, indent + 1)
-
-			// Сиблинги всегда обходятся
-			traverse(fiber.sibling, indent)
+			if (!isCollapsed && fiber.child) traverse(fiber.child, indent + 1, path + '.0')
+			if (fiber.sibling) {
+				const parts = path.split('.')
+				parts[parts.length - 1] = String(Number(parts[parts.length - 1]) + 1)
+				traverse(fiber.sibling, indent, parts.join('.'))
+			}
 		}
 
 		const actualRoot = !root.type && root.child ? root.child : root
