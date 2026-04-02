@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyper-Framework 🚀 (No VDOM)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #020617 50%, #172554 100%);
+            --card-bg: rgba(30, 41, 59, 0.4);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --neon-blue: #38bdf8;
+            --neon-purple: #a855f7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: var(--bg-gradient);
+            font-family: 'Outfit', -apple-system, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #root {
+            display: flex;
+            gap: 2rem;
+            max-width: 900px;
+            width: 90%;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem;
+            flex: 1;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .counter-p {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 1rem 0;
+            color: var(--neon-blue);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .counter-p.update-flash {
+            transform: scale(1.15);
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+        }
+
+        .glow-button {
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            border: none;
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            margin-top: 1rem;
+        }
+
+        .glow-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .glow-button:active {
+            transform: translateY(1px);
+        }
+
+        /* Лог панель */
+        .logs-panel {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-y: auto;
+            max-height: 350px;
+        }
+
+        .logs-header {
+            color: var(--neon-purple);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.4rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        .log-entry.spec {
+            color: #10b981;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--neon-blue);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            margin-bottom: 1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script>
+        // ==========================================
+        // 🧠 1. ЯДРО (Signals Runtime)
+        // ==========================================
+        let currentEffect = null;
+
+        function createSignal(value) {
+            const subscribers = new Set();
+            
+            const getter = () => {
+                if (currentEffect) subscribers.add(currentEffect);
+                return value;
+            };
+            
+            const setter = (newValue) => {
+                if (value === newValue) return;
+                value = newValue;
+                subscribers.forEach(effectFn => effectFn());
+            };
+            
+            return [getter, setter];
+        }
+
+        function createEffect(fn) {
+            currentEffect = fn;
+            fn();
+            currentEffect = null;
+        }
+
+        // Вспомогательная функция для логов на экране
+        function addLog(text, isSpecial = false) {
+            const panel = document.getElementById('logs-container');
+            if (!panel) return;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isSpecial ? 'spec' : ''}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            panel.appendChild(entry);
+            panel.scrollTop = panel.scrollHeight; // Скролл вниз
+        }
+
+        // ==========================================
+        // 🛠️ 2. СКОМПИЛИРОВАННЫЙ КОМПОНЕНТ (Real DOM!)
+        // ==========================================
+
+        function Counter_Compiled() {
+            const [count, setCount] = createSignal(0);
+
+            // --- КАРКАС КОМПОНЕНТА ---
+            const container = document.createElement('div');
+            container.id = "app-container";
+            container.style.display = 'flex';
+            container.style.gap = '2rem';
+            container.style.width = '100%';
+
+            // Слева - карточка
+            const card = document.createElement('div');
+            card.className = 'glass-card';
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = 'Hyper-Framework (No VDOM)';
+
+            const h1 = document.createElement('h1');
+            h1.textContent = "Привет, Пользователь!";
+
+            const p = document.createElement('p');
+            p.className = 'counter-p';
+
+            const button = document.createElement('button');
+            button.className = 'glow-button';
+            button.textContent = "Добавить";
+
+            card.appendChild(badge);
+            card.appendChild(h1);
+            card.appendChild(p);
+            card.appendChild(button);
+
+            // Справа - лог панель
+            const logsPanel = document.createElement('div');
+            logsPanel.className = 'logs-panel';
+
+            const logsHeader = document.createElement('div');
+            logsHeader.className = 'logs-header';
+            logsHeader.innerHTML = '<span>•</span> Живой лог обновлений';
+
+            const logsContainer = document.createElement('div');
+            logsContainer.id = 'logs-container';
+            logsContainer.style.overflowY = 'auto';
+
+            logsPanel.appendChild(logsHeader);
+            logsPanel.appendChild(logsContainer);
+
+            container.appendChild(card);
+            container.appendChild(logsPanel);
+
+            // Запись первого лога
+            setTimeout(() => addLog("✨ Компонент инициализирован (Функция отработала 1 РАЗ)"), 100);
+
+            // --- БИНДИНГИ СОБЫТИЙ ---
+            button.onclick = () => {
+                setCount(count() + 1);
+            };
+
+            // --- ⚡ СПЕЦИФИКАЦИЯ ЭФФЕКТОВ ---
+            createEffect(() => {
+                const currentCount = count();
+                
+                // 1. Обновление DOM без рендера всего шаблона
+                p.textContent = currentCount;
+                
+                // 2. Анимация обновления
+                p.classList.add('update-flash');
+                setTimeout(() => p.classList.remove('update-flash'), 150);
+
+                addLog(`⚡ [Update Node] Новое значение: ${currentCount}`, true);
+            });
+
+            return container;
+        }
+
+        // Монтирование
+        document.getElementById('root').appendChild(Counter_Compiled());
+
+    </script>
+
+</body>
+</html>
